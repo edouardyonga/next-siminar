@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CourseStatus {
+  draft
+  scheduled
+  completed
+  cancelled
+}
+
+model Trainer {
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  email              String              @unique
+  location           String
+  trainingSubjects   String[]
+  availabilityRanges Json?
+  hourlyRate         Decimal?
+  rating             Int?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  courses            Course[]            @relation("TrainerCourses")
+  assignmentHistory  AssignmentHistory[]
+}
+
+model Course {
+  id                Int                 @id @default(autoincrement())
+  name              String
+  startDate         DateTime
+  endDate           DateTime
+  subject           String[]
+  location          String
+  participants      Int
+  notes             String?
+  price             Decimal
+  trainerPrice      Decimal
+  status            CourseStatus        @default(draft)
+  assignedTrainerId Int?
+  deletedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  assignedTrainer   Trainer?            @relation("TrainerCourses", fields: [assignedTrainerId], references: [id])
+  assignmentHistory AssignmentHistory[]
+
+  @@index([startDate])
+  @@index([location])
+  @@index([status])
+}
+
+model AssignmentHistory {
+  id         Int      @id @default(autoincrement())
+  courseId   Int
+  trainerId  Int
+  action     String
+  actor      String?
+  createdAt  DateTime @default(now())
+
+  course     Course   @relation(fields: [courseId], references: [id])
+  trainer    Trainer  @relation(fields: [trainerId], references: [id])
+
+  @@index([courseId])
+  @@index([trainerId])
+}
+
