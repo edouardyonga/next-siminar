@@ -13,7 +13,7 @@ function Toast() {
   const { toast, setToast } = useDashboard();
   if (!toast) return null;
   return (
-    <div className="fixed bottom-4 right-4 flex items-center gap-3 rounded-xl bg-green px-4 py-3 text-sm text-white shadow-lg">
+    <div className="fixed bottom-4 right-4 flex items-center gap-3 rounded-xl bg-green-600 px-4 py-3 text-sm text-white shadow-lg ring-1 ring-green-500/60">
       <span>{toast.message}</span>
       <button className="text-xs text-zinc-300" onClick={() => setToast(null)}>
         Close

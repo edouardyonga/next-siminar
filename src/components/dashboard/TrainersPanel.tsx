@@ -6,6 +6,7 @@ import { TrainerForm } from "./TrainerForm";
 import { Trainer } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { Modal } from "@/components/ui/Modal";
+import { TrainerList } from "./TrainerList";
 
 export function TrainersPanel() {
   const {
@@ -74,71 +75,17 @@ export function TrainersPanel() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
-            <tr>
-              <th className="px-4 py-3">Trainer</th>
-              <th className="px-4 py-3">Location</th>
-              <th className="px-4 py-3">Subjects</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {filtered.map((trainer) => (
-              <tr
-                key={trainer.id}
-                className={`hover:bg-zinc-50 ${trainer.id === selectedTrainerId ? "bg-indigo-50/60" : ""}`}
-              >
-                <td
-                  className="cursor-pointer px-4 py-3"
-                  onClick={() => selectTrainer(trainer.id)}
-                >
-                  <div className="font-medium text-zinc-900">{trainer.name}</div>
-                  <div className="text-xs text-zinc-500">{trainer.email}</div>
-                </td>
-                <td className="px-4 py-3 text-sm text-zinc-700">{trainer.location}</td>
-                <td className="px-4 py-3 text-sm text-zinc-700">
-                  <div className="flex flex-wrap gap-1">
-                    {trainer.trainingSubjects.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right text-xs text-zinc-500">
-                  <button
-                    className="mr-3 text-indigo-600 underline decoration-dotted underline-offset-4"
-                    onClick={() => {
-                      setEditTrainer(trainer);
-                      setShowFormModal(true);
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="text-red-600 underline decoration-dotted underline-offset-4"
-                    onClick={() => handleDelete(trainer.id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!filtered.length ? (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-sm text-zinc-500">
-                  {loading ? "Loading..." : "No trainers found"}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <TrainerList
+        trainers={filtered}
+        selectedTrainerId={selectedTrainerId}
+        loading={loading}
+        onSelect={(id) => selectTrainer(id)}
+        onEdit={(trainer) => {
+          setEditTrainer(trainer);
+          setShowFormModal(true);
+        }}
+        onDelete={handleDelete}
+      />
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       <TrainerProfile trainer={selectedTrainer} courses={activeCourses} />

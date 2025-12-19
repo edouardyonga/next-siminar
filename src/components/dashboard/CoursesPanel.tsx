@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { CourseForm } from "./CourseForm";
 import { useDashboard } from "./dashboard-provider";
 import { Course } from "@/lib/types";
-import { formatDate, formatDateRange, formatMoney } from "@/lib/format";
+import { formatDateRange, formatMoney } from "@/lib/format";
 import { Modal } from "@/components/ui/Modal";
+import { CourseList } from "./CourseList";
 
 type SortKey = "startDate" | "status" | "location";
 
@@ -122,70 +123,17 @@ export function CoursesPanel() {
             </select>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-zinc-200">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
-                <tr>
-                  <th className="px-4 py-3">Course</th>
-                  <th className="px-4 py-3">Dates</th>
-                  <th className="px-4 py-3">Trainer</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {filteredCourses.map((course) => (
-                  <tr
-                    key={course.id}
-                    className={`hover:bg-zinc-50 ${course.id === selectedCourseId ? "bg-indigo-50/60" : ""}`}
-                  >
-                    <td
-                      className="cursor-pointer px-4 py-3"
-                      onClick={() => selectCourse(course.id)}
-                    >
-                      <div className="font-medium text-zinc-900">{course.name}</div>
-                      <div className="text-xs text-zinc-500">{course.location}</div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">
-                      {formatDateRange(course.startDate, course.endDate)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-zinc-700">
-                      {course.assignedTrainer?.name ?? "Unassigned"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium capitalize text-zinc-700">
-                        {course.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs text-zinc-500">
-                      <button
-                        className="mr-3 text-indigo-600 underline decoration-dotted underline-offset-4"
-                        onClick={() => {
-                          setEditCourse(course);
-                          setShowFormModal(true);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-600 underline decoration-dotted underline-offset-4"
-                        onClick={() => handleDelete(course.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {!filteredCourses.length ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-6 text-center text-sm text-zinc-500">
-                      {loading ? "Loading..." : "No courses found"}
-                    </td>
-                  </tr>
-                ) : null}
-              </tbody>
-            </table>
-          </div>
+          <CourseList
+            courses={filteredCourses}
+            selectedCourseId={selectedCourseId}
+            loading={loading}
+            onSelect={(id) => selectCourse(id)}
+            onEdit={(course) => {
+              setEditCourse(course);
+              setShowFormModal(true);
+            }}
+            onDelete={handleDelete}
+          />
           {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
         </div>
 
