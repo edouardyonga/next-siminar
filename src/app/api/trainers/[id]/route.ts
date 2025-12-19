@@ -13,8 +13,8 @@ async function parseId(params: Params["params"]) {
 }
 
 export async function GET(_: Request, { params }: Params) {
-  const id = Number(params.id);
-  if (Number.isNaN(id)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
+  const id = await parseId(params);
+  if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
   const trainer = await prisma.trainer.findUnique({
     where: { id },
@@ -33,7 +33,7 @@ export async function PUT(req: Request, { params }: Params) {
   try {
     await requireAuth();
     const id = await parseId(params);
-    if (Number.isNaN(id)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
+    if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
     const existing = await prisma.trainer.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });
@@ -69,7 +69,7 @@ export async function DELETE(_: Request, { params }: Params) {
   try {
     await requireAuth();
     const id = await parseId(params);
-    if (Number.isNaN(id)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
+    if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
     const existing = await prisma.trainer.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });

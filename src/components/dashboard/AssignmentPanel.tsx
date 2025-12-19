@@ -97,7 +97,7 @@ export function AssignmentPanel() {
       return;
     }
 
-    setMessage("Trainer assigned");
+    setMessage(res.message ?? "Trainer assigned");
   };
 
   return (

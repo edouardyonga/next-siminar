@@ -258,10 +258,18 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
           return { ok: false, message: body?.error?.message ?? "Failed to assign trainer" };
         }
 
+        const emailStatus = body?.emailStatus as { sent?: boolean; error?: string } | undefined;
+        const emailWarning =
+          emailStatus?.sent === false
+            ? emailStatus?.error
+              ? `Trainer assigned, but email failed: ${emailStatus.error}`
+              : "Trainer assigned, but notification email could not be sent"
+            : undefined;
+
         await refresh();
-        setToast({ type: "success", message: "Trainer assigned" });
+        setToast({ type: emailWarning ? "info" : "success", message: emailWarning ?? "Trainer assigned" });
         setSelectedTrainerId(trainerId);
-        return { ok: true };
+        return { ok: true, message: emailWarning };
       } catch (err) {
         return {
           ok: false,

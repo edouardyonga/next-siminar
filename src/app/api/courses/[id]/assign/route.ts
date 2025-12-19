@@ -2,14 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { detectCourseConflicts } from "@/lib/conflicts";
 import { requireAuth } from "@/lib/session";
+import { sendTrainerAssignmentEmail } from "@/lib/mail";
 
 type Params = { params: { id: string } };
+
+async function parseId(params: Params["params"]) {
+  const { id } = await params;
+  const numericId = Number(id);
+  if (Number.isNaN(numericId)) return null;
+  return numericId;
+}
 
 export async function POST(req: Request, { params }: Params) {
   try {
     const user = await requireAuth();
-    const courseId = Number(params.id);
-    if (Number.isNaN(courseId)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
+    const courseId = await parseId(params);
+    if (Number.isNaN(courseId) || courseId === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
     const body = await req.json();
     const trainerId = Number(body.trainerId);
@@ -41,6 +49,7 @@ export async function POST(req: Request, { params }: Params) {
     const updated = await prisma.course.update({
       where: { id: courseId },
       data: { assignedTrainerId: trainerId },
+      include: { assignedTrainer: true },
     });
 
     await prisma.assignmentHistory.create({
@@ -52,7 +61,23 @@ export async function POST(req: Request, { params }: Params) {
       },
     });
 
-    return NextResponse.json({ course: updated, conflicts });
+    let emailStatus: { sent: boolean; error?: string } = { sent: false };
+    try {
+      await sendTrainerAssignmentEmail({
+        course: updated,
+        trainer,
+        assignedBy: user.email,
+      });
+      emailStatus = { sent: true };
+    } catch (err) {
+      console.error("Trainer assignment email error", err);
+      emailStatus = {
+        sent: false,
+        error: err instanceof Error ? err.message : "Unable to send notification email",
+      };
+    }
+
+    return NextResponse.json({ course: updated, conflicts, emailStatus });
   } catch (err) {
     console.error("Assign trainer error", err);
     return NextResponse.json({ error: { message: "Failed to assign trainer" } }, { status: err instanceof Error && err.message === "unauthorized" ? 401 : 500 });
