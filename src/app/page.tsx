@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from "react";
 import { DashboardProvider, useDashboard } from "@/components/dashboard/dashboard-provider";
 import { AuthProvider, useAuth } from "@/components/auth/AuthProvider";
 import { LoginForm } from "@/components/auth/LoginForm";
@@ -11,9 +12,15 @@ import { HistoryPanel } from "@/components/dashboard/HistoryPanel";
 
 function Toast() {
   const { toast, setToast } = useDashboard();
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(id);
+  }, [toast, setToast]);
+
   if (!toast) return null;
   return (
-    <div className="fixed bottom-4 right-4 flex items-center gap-3 rounded-xl bg-green-600 px-4 py-3 text-sm text-white shadow-lg ring-1 ring-green-500/60">
+    <div className="fixed top-4 right-4 flex items-center gap-3 rounded-xl bg-green-600 px-4 py-3 text-sm text-white shadow-lg ring-1 ring-green-500/60">
       <span>{toast.message}</span>
       <button className="text-xs text-zinc-300" onClick={() => setToast(null)}>
         Close

@@ -87,8 +87,18 @@ export function CourseForm({ trainers, initial, onSaved, onCancel }: Props) {
   );
 
   const submit = async (opts?: { allowOverride?: boolean }) => {
-    setSaving(true);
     setError(null);
+
+    if (form.startDate && form.endDate) {
+      const start = new Date(form.startDate).getTime();
+      const end = new Date(form.endDate).getTime();
+      if (!Number.isNaN(start) && !Number.isNaN(end) && end <= start) {
+        setError("End date must be after start date.");
+        return;
+      }
+    }
+
+    setSaving(true);
     setConflicts([]);
     const result = await upsertCourse(payload, {
       courseId: initial?.id,
