@@ -27,7 +27,7 @@ export async function GET(_: Request, { params }: Params) {
 
 export async function PUT(req: Request, { params }: Params) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const id = await parseId(params);
     if (!id) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
@@ -74,6 +74,29 @@ export async function PUT(req: Request, { params }: Params) {
         assignedTrainerId: parsed.assignedTrainerId ?? null,
       },
     });
+
+    if (existing.assignedTrainerId !== parsed.assignedTrainerId) {
+      if (existing.assignedTrainerId && !parsed.assignedTrainerId) {
+        await prisma.assignmentHistory.create({
+          data: {
+            courseId: id,
+            trainerId: existing.assignedTrainerId,
+            action: "unassigned",
+            actor: user.email,
+          },
+        });
+      }
+      if (parsed.assignedTrainerId) {
+        await prisma.assignmentHistory.create({
+          data: {
+            courseId: id,
+            trainerId: parsed.assignedTrainerId,
+            action: "assigned",
+            actor: user.email,
+          },
+        });
+      }
+    }
 
     return NextResponse.json({ course, conflicts });
   } catch (err) {

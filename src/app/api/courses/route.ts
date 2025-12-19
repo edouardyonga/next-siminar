@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: Request) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     const body = await req.json();
     const allowOverride = Boolean(body.allowOverride);
 
@@ -64,6 +64,17 @@ export async function POST(req: Request) {
         assignedTrainerId: parsed.assignedTrainerId ?? null,
       },
     });
+
+    if (parsed.assignedTrainerId) {
+      await prisma.assignmentHistory.create({
+        data: {
+          courseId: course.id,
+          trainerId: parsed.assignedTrainerId,
+          action: "assigned",
+          actor: user.email,
+        },
+      });
+    }
 
     return NextResponse.json({ course, conflicts }, { status: conflicts.length ? 201 : 201 });
   } catch (err) {

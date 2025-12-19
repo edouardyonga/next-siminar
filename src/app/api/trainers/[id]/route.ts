@@ -67,9 +67,22 @@ export async function DELETE(_: Request, { params }: Params) {
     const existing = await prisma.trainer.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });
 
-    // Unassign trainer from any courses before delete.
+    const assignedCourses = await prisma.course.findMany({
+      where: { assignedTrainerId: id, deletedAt: null },
+      select: { id: true },
+    });
+
+    // Unassign trainer from any courses before delete and track history
     await prisma.$transaction([
       prisma.course.updateMany({ where: { assignedTrainerId: id }, data: { assignedTrainerId: null } }),
+      prisma.assignmentHistory.createMany({
+        data: assignedCourses.map((course) => ({
+          courseId: course.id,
+          trainerId: id,
+          action: "unassigned (trainer deleted)",
+          actor: existing.email,
+        })),
+      }),
       prisma.trainer.delete({ where: { id } }),
     ]);
 
