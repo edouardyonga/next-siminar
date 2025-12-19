@@ -25,10 +25,7 @@ function Toast() {
 export default function Home() {
   return (
     <AuthProvider>
-      <DashboardProvider>
-        <MainGate />
-        <Toast />
-      </DashboardProvider>
+      <MainGate />
     </AuthProvider>
   );
 }
@@ -49,7 +46,12 @@ function MainGate() {
       </div>
     );
   }
-  return <DashboardContent />;
+  return (
+    <DashboardProvider>
+      <DashboardContent />
+      <Toast />
+    </DashboardProvider>
+  );
 }
 
 function DashboardContent() {
