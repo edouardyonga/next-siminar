@@ -5,6 +5,13 @@ import { requireAuth } from "@/lib/session";
 
 type Params = { params: { id: string } };
 
+async function parseId(params: Params["params"]) {
+  const { id } = await params;
+  const numericId = Number(id);
+  if (Number.isNaN(numericId)) return null;
+  return numericId;
+}
+
 export async function GET(_: Request, { params }: Params) {
   const id = Number(params.id);
   if (Number.isNaN(id)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
@@ -25,7 +32,7 @@ export async function GET(_: Request, { params }: Params) {
 export async function PUT(req: Request, { params }: Params) {
   try {
     await requireAuth();
-    const id = Number(params.id);
+    const id = await parseId(params);
     if (Number.isNaN(id)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
     const existing = await prisma.trainer.findUnique({ where: { id } });
@@ -61,7 +68,7 @@ export async function PUT(req: Request, { params }: Params) {
 export async function DELETE(_: Request, { params }: Params) {
   try {
     await requireAuth();
-    const id = Number(params.id);
+    const id = await parseId(params);
     if (Number.isNaN(id)) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
     const existing = await prisma.trainer.findUnique({ where: { id } });

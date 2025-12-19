@@ -42,7 +42,7 @@ CREATE TABLE "Course" (
 CREATE TABLE "AssignmentHistory" (
     "id" SERIAL NOT NULL,
     "courseId" INTEGER NOT NULL,
-    "trainerId" INTEGER NOT NULL,
+    "trainerId" INTEGER,
     "action" TEXT NOT NULL,
     "actor" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -75,4 +75,4 @@ ALTER TABLE "Course" ADD CONSTRAINT "Course_assignedTrainerId_fkey" FOREIGN KEY 
 ALTER TABLE "AssignmentHistory" ADD CONSTRAINT "AssignmentHistory_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AssignmentHistory" ADD CONSTRAINT "AssignmentHistory_trainerId_fkey" FOREIGN KEY ("trainerId") REFERENCES "Trainer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "AssignmentHistory" ADD CONSTRAINT "AssignmentHistory_trainerId_fkey" FOREIGN KEY ("trainerId") REFERENCES "Trainer"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -58,13 +58,13 @@ model Course {
 model AssignmentHistory {
   id         Int      @id @default(autoincrement())
   courseId   Int
-  trainerId  Int
+  trainerId  Int?
   action     String
   actor      String?
   createdAt  DateTime @default(now())
 
   course     Course   @relation(fields: [courseId], references: [id])
-  trainer    Trainer  @relation(fields: [trainerId], references: [id])
+  trainer    Trainer? @relation(fields: [trainerId], references: [id], onDelete: SetNull)
 
   @@index([courseId])
   @@index([trainerId])
