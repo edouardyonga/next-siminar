@@ -13,10 +13,16 @@ type Props = {
 };
 
 export function CourseList({ courses, selectedCourseId, onSelect, onEdit, onDelete, loading }: Props) {
+  const isLoading = Boolean(loading);
+  const isEmpty = !courses.length && !isLoading;
+
   return (
     <>
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 md:block">
+      <div
+        className="hidden overflow-x-auto rounded-xl border border-zinc-200 md:block"
+        aria-busy={isLoading}
+      >
         <table className="min-w-[720px] w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
@@ -28,7 +34,14 @@ export function CourseList({ courses, selectedCourseId, onSelect, onEdit, onDele
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {courses.map((course) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-sm text-zinc-500" role="status">
+                  Loading courses…
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && courses.map((course) => (
               <tr
                 key={course.id}
                 className={`hover:bg-zinc-50 ${course.id === selectedCourseId ? "bg-indigo-50/60" : ""}`}
@@ -36,6 +49,13 @@ export function CourseList({ courses, selectedCourseId, onSelect, onEdit, onDele
                 <td
                   className="cursor-pointer px-4 py-3"
                   onClick={() => onSelect(course.id)}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelect(course.id);
+                    }
+                  }}
                 >
                   <div className="font-medium text-zinc-900">{course.name}</div>
                   <div className="text-xs text-zinc-500">{course.location}</div>
@@ -67,10 +87,10 @@ export function CourseList({ courses, selectedCourseId, onSelect, onEdit, onDele
                 </td>
               </tr>
             ))}
-            {!courses.length ? (
+            {isEmpty ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-sm text-zinc-500">
-                  {loading ? "Loading..." : "No courses found"}
+                <td colSpan={5} className="px-4 py-6 text-center text-sm text-zinc-500" role="status">
+                  No courses match the current filters.
                 </td>
               </tr>
             ) : null}
@@ -79,12 +99,25 @@ export function CourseList({ courses, selectedCourseId, onSelect, onEdit, onDele
       </div>
 
       {/* Mobile cards */}
-      <div className="space-y-3 md:hidden">
-        {courses.map((course) => (
+      <div className="space-y-3 md:hidden" aria-busy={isLoading}>
+        {isLoading ? (
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500" role="status">
+            Loading courses…
+          </div>
+        ) : null}
+        {!isLoading && courses.map((course) => (
           <div
             key={course.id}
             className={`rounded-xl border border-zinc-200 bg-white p-3 shadow-sm ${course.id === selectedCourseId ? "ring-2 ring-indigo-200" : ""}`}
             onClick={() => onSelect(course.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(course.id);
+              }
+            }}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -123,9 +156,9 @@ export function CourseList({ courses, selectedCourseId, onSelect, onEdit, onDele
             </div>
           </div>
         ))}
-        {!courses.length ? (
+        {isEmpty ? (
           <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500">
-            {loading ? "Loading..." : "No courses found"}
+            No courses match the current filters.
           </div>
         ) : null}
       </div>

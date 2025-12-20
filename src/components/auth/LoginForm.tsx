@@ -41,7 +41,7 @@ export function LoginForm() {
       className="w-full max-w-md space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm"
     >
       <div>
-        <p className="text-xs uppercase tracking-wide text-indigo-700">Seminar OS</p>
+        <p className="text-xs uppercase tracking-wide text-indigo-700">Seminar Ops</p>
         <h1 className="text-2xl font-semibold text-zinc-900">Sign in</h1>
         <p className="text-sm text-zinc-600">Use your admin credentials to continue.</p>
       </div>

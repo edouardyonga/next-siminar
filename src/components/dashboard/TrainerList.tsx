@@ -12,10 +12,16 @@ type Props = {
 };
 
 export function TrainerList({ trainers, selectedTrainerId, loading, onSelect, onEdit, onDelete }: Props) {
+  const isLoading = Boolean(loading);
+  const isEmpty = !trainers.length && !isLoading;
+
   return (
     <>
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 md:block">
+      <div
+        className="hidden overflow-x-auto rounded-xl border border-zinc-200 md:block"
+        aria-busy={isLoading}
+      >
         <table className="min-w-[640px] w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
             <tr>
@@ -26,7 +32,14 @@ export function TrainerList({ trainers, selectedTrainerId, loading, onSelect, on
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {trainers.map((trainer) => (
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-zinc-500" role="status">
+                  Loading trainers…
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && trainers.map((trainer) => (
               <tr
                 key={trainer.id}
                 className={`hover:bg-zinc-50 ${trainer.id === selectedTrainerId ? "bg-indigo-50/60" : ""}`}
@@ -34,6 +47,13 @@ export function TrainerList({ trainers, selectedTrainerId, loading, onSelect, on
                 <td
                   className="cursor-pointer px-4 py-3"
                   onClick={() => onSelect(trainer.id)}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onSelect(trainer.id);
+                    }
+                  }}
                 >
                   <div className="font-medium text-zinc-900">{trainer.name}</div>
                   <div className="text-xs text-zinc-500">{trainer.email}</div>
@@ -67,10 +87,10 @@ export function TrainerList({ trainers, selectedTrainerId, loading, onSelect, on
                 </td>
               </tr>
             ))}
-            {!trainers.length ? (
+            {isEmpty ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-sm text-zinc-500">
-                  {loading ? "Loading..." : "No trainers found"}
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-zinc-500" role="status">
+                  No trainers match the current filters.
                 </td>
               </tr>
             ) : null}
@@ -79,12 +99,25 @@ export function TrainerList({ trainers, selectedTrainerId, loading, onSelect, on
       </div>
 
       {/* Mobile cards */}
-      <div className="space-y-3 md:hidden">
-        {trainers.map((trainer) => (
+      <div className="space-y-3 md:hidden" aria-busy={isLoading}>
+        {isLoading ? (
+          <div className="rounded-xl border border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500" role="status">
+            Loading trainers…
+          </div>
+        ) : null}
+        {!isLoading && trainers.map((trainer) => (
           <div
             key={trainer.id}
             className={`rounded-xl border border-zinc-200 bg-white p-3 shadow-sm ${trainer.id === selectedTrainerId ? "ring-2 ring-indigo-200" : ""}`}
             onClick={() => onSelect(trainer.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(trainer.id);
+              }
+            }}
           >
             <div className="flex items-start justify-between">
               <div>
@@ -128,9 +161,9 @@ export function TrainerList({ trainers, selectedTrainerId, loading, onSelect, on
             </div>
           </div>
         ))}
-        {!trainers.length ? (
+        {isEmpty ? (
           <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-4 text-center text-sm text-zinc-500">
-            {loading ? "Loading..." : "No trainers found"}
+            No trainers match the current filters.
           </div>
         ) : null}
       </div>

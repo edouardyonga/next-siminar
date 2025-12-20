@@ -20,7 +20,11 @@ function Toast() {
 
   if (!toast) return null;
   return (
-    <div className="fixed top-4 right-4 flex items-center gap-3 rounded-xl bg-green-600 px-4 py-3 text-sm text-white shadow-lg ring-1 ring-green-500/60">
+    <div
+      className="fixed top-4 right-4 flex items-center gap-3 rounded-xl bg-green-600 px-4 py-3 text-sm text-white shadow-lg ring-1 ring-green-500/60"
+      role="status"
+      aria-live="polite"
+    >
       <span>{toast.message}</span>
       <button className="text-xs text-zinc-300" onClick={() => setToast(null)}>
         Close
@@ -62,13 +66,16 @@ function MainGate() {
 }
 
 function DashboardContent() {
-  const { error, refresh } = useDashboard();
+  const { error, refresh, loading } = useDashboard();
   const { user, logout } = useAuth();
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white px-4 py-6 sm:px-6 lg:px-10">
+    <div
+      className="min-h-screen bg-gradient-to-b from-zinc-50 to-white px-4 py-6 sm:px-6 lg:px-10"
+      aria-busy={loading}
+    >
       <header className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-wide text-indigo-700">Seminar OS</p>
+          <p className="text-xs uppercase tracking-wide text-indigo-700">Seminar Ops</p>
           <h1 className="text-3xl font-semibold text-zinc-900">Training operations cockpit</h1>
           <p className="text-sm text-zinc-600">
             Manage courses, trainers, and assignments with conflict prevention.
@@ -86,6 +93,16 @@ function DashboardContent() {
           </button>
         </div>
       </header>
+
+      {loading ? (
+        <div
+          className="mb-4 flex items-center gap-2 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-800"
+          role="status"
+        >
+          <span className="inline-flex h-2 w-2 rounded-full bg-indigo-500" aria-hidden />
+          <span>Refreshing dashboard data…</span>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="mb-4 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

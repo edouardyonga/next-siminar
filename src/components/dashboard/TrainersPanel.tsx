@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDashboard } from "./dashboard-provider";
 import { TrainerForm } from "./TrainerForm";
 import { Trainer } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { Modal } from "@/components/ui/Modal";
 import { TrainerList } from "./TrainerList";
+import { PaginationBar } from "./PaginationBar";
 
 export function TrainersPanel() {
   const {
@@ -18,21 +19,73 @@ export function TrainersPanel() {
     loading,
   } = useDashboard();
   const [search, setSearch] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
   const [showFormModal, setShowFormModal] = useState(false);
   const [editTrainer, setEditTrainer] = useState<Trainer | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const subjects = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          trainers.flatMap((t) =>
+            (t.trainingSubjects ?? [])
+              .map((s) => s.trim())
+              .filter((s): s is string => Boolean(s)),
+          ),
+        ),
+      ),
+    [trainers],
+  );
+
+  const locations = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          trainers
+            .map((t) => t.location)
+            .filter((loc): loc is string => Boolean(loc && loc.trim()))
+            .map((loc) => loc.trim()),
+        ),
+      ),
+    [trainers],
+  );
+
   const filtered = useMemo(() => {
     return trainers.filter((t) => {
       const query = search.toLowerCase();
-      if (!query) return true;
-      return (
+      const matchesSearch =
+        !query ||
         t.name.toLowerCase().includes(query) ||
         t.trainingSubjects.some((s) => s.toLowerCase().includes(query)) ||
-        t.location.toLowerCase().includes(query)
-      );
+        t.location.toLowerCase().includes(query);
+      const matchesSubject =
+        subjectFilter === "all"
+          ? true
+          : t.trainingSubjects.map((s) => s.toLowerCase()).includes(subjectFilter.toLowerCase());
+      const matchesLocation = locationFilter === "all" ? true : t.location === locationFilter;
+      return matchesSearch && matchesSubject && matchesLocation;
     });
-  }, [trainers, search]);
+  }, [trainers, search, subjectFilter, locationFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, subjectFilter, locationFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, currentPage, pageSize]);
 
   const selectedTrainer = useMemo(
     () => trainers.find((t) => t.id === selectedTrainerId) ?? null,
@@ -68,15 +121,44 @@ export function TrainersPanel() {
         </button>
       </div>
 
-      <input
-        placeholder="Search trainer, subject, or location"
-        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <input
+          aria-label="Search trainer, subject, or location"
+          placeholder="Search trainer, subject, or location"
+          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          aria-label="Filter by subject"
+          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          value={subjectFilter}
+          onChange={(e) => setSubjectFilter(e.target.value)}
+        >
+          <option value="all">All subjects</option>
+          {subjects.map((subject) => (
+            <option key={subject} value={subject}>
+              {subject}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filter by trainer location"
+          className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+        >
+          <option value="all">All locations</option>
+          {locations.map((loc) => (
+            <option key={loc} value={loc}>
+              {loc}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <TrainerList
-        trainers={filtered}
+        trainers={paginated}
         selectedTrainerId={selectedTrainerId}
         loading={loading}
         onSelect={(id) => selectTrainer(id)}
@@ -86,7 +168,19 @@ export function TrainersPanel() {
         }}
         onDelete={handleDelete}
       />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      <PaginationBar
+        id="trainers-pagination"
+        page={currentPage}
+        pageSize={pageSize}
+        total={filtered.length}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
+      {error ? (
+        <p className="text-sm text-red-600" role="status" aria-live="polite">
+          {error}
+        </p>
+      ) : null}
 
       <TrainerProfile trainer={selectedTrainer} courses={activeCourses} />
 

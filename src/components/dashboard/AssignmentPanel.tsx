@@ -6,7 +6,8 @@ import { Conflict, TrainerMatchResponse, TrainerMatchSuggestion } from "@/lib/ty
 import { formatDateRange } from "@/lib/format";
 
 export function AssignmentPanel() {
-  const { courses, trainers, assignTrainer, selectedCourseId, selectCourse } = useDashboard();
+  const { courses, trainers, assignTrainer, selectedCourseId, selectCourse, loading } =
+    useDashboard();
   const [selectedTrainerId, setSelectedTrainerId] = useState<number | null>(null);
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -113,9 +114,11 @@ export function AssignmentPanel() {
         <div className="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <select
+              aria-label="Select course to assign"
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
               value={selectedCourseId ?? ""}
               onChange={(e) => selectCourse(e.target.value ? Number(e.target.value) : null)}
+              disabled={loading}
             >
               <option value="">Select course</option>
               {courses.map((c) => (
@@ -126,11 +129,13 @@ export function AssignmentPanel() {
             </select>
 
             <select
+              aria-label="Select trainer to assign"
               className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
               value={selectedTrainerId ?? ""}
               onChange={(e) =>
                 setSelectedTrainerId(e.target.value ? Number(e.target.value) : null)
               }
+              disabled={loading}
             >
               <option value="">Select trainer</option>
               {trainers.map((t) => (
@@ -150,7 +155,11 @@ export function AssignmentPanel() {
           </button>
 
           {conflicts.length ? (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <div
+              className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+              role="status"
+              aria-live="polite"
+            >
               <p className="font-semibold">Conflicts detected</p>
               <ul className="mt-2 list-disc pl-5">
                 {conflicts.map((c) => (
@@ -166,10 +175,17 @@ export function AssignmentPanel() {
               </button>
             </div>
           ) : null}
-          {message ? <p className="text-sm text-zinc-700">{message}</p> : null}
+          {message ? (
+            <p className="text-sm text-zinc-700" role="status" aria-live="polite">
+              {message}
+            </p>
+          ) : null}
         </div>
 
-        <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+        <div
+          className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3"
+          aria-busy={suggestionsLoading}
+        >
           <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
             <p className="uppercase tracking-wide">AI suggestions</p>
             {suggestionsMeta.source ? (

@@ -5,7 +5,7 @@ import { useDashboard } from "./dashboard-provider";
 import { formatDate } from "@/lib/format";
 
 export function HistoryPanel() {
-  const { history, selectedCourseId, selectedTrainerId } = useDashboard();
+  const { history, selectedCourseId, selectedTrainerId, loading } = useDashboard();
 
   const filtered = useMemo(() => {
     return history.filter((item) => {
@@ -16,7 +16,10 @@ export function HistoryPanel() {
   }, [history, selectedCourseId, selectedTrainerId]);
 
   return (
-    <div className="space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <div
+      className="space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+      aria-busy={loading}
+    >
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-zinc-500">Assignment history</p>
@@ -25,7 +28,12 @@ export function HistoryPanel() {
       </div>
 
       <div className="space-y-2">
-        {filtered.length ? (
+        {loading ? (
+          <p className="text-sm text-zinc-500" role="status">
+            Loading history…
+          </p>
+        ) : null}
+        {!loading && filtered.length ? (
           filtered.map((item) => (
             <div
               key={item.id}
