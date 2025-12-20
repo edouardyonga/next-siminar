@@ -3,6 +3,8 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
+  OPENAI_BASE_URL: z.string().url().optional(),
   AUTH_SECRET: z.string().min(16),
   ADMIN_EMAIL: z.string().email(),
   ADMIN_PASSWORD: z.string().min(8),

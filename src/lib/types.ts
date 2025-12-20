@@ -70,4 +70,23 @@ export type TrainerPayload = Omit<
   "id" | "createdAt" | "updatedAt" | "availabilityRanges"
 > & { availabilityRanges?: TrainerAvailability[] };
 
+export type TrainerMatchSuggestion = {
+  trainerId: number;
+  trainer: Trainer;
+  score: number;
+  confidence: number;
+  reasons: string[];
+  source: "ai" | "fallback" | "cached";
+  model?: string;
+};
+
+export type TrainerMatchResponse = {
+  suggestions: TrainerMatchSuggestion[];
+  source: "ai" | "fallback" | "cached";
+  usedCache?: boolean;
+  model?: string;
+  fallbackReason?: string;
+  error?: string;
+};
+
 

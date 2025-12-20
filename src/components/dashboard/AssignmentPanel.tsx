@@ -1,56 +1,9 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDashboard } from "./dashboard-provider";
-import { Conflict, Course, Trainer } from "@/lib/types";
+import { Conflict, TrainerMatchResponse, TrainerMatchSuggestion } from "@/lib/types";
 import { formatDateRange } from "@/lib/format";
-
-type Suggestion = { trainer: Trainer; score: number; reasons: string[] };
-
-function computeScore(course: Course, trainer: Trainer, allCourses: Course[]): Suggestion {
-  let score = 0;
-  const reasons: string[] = [];
-
-  const overlap = course.subject.filter((s) =>
-    trainer.trainingSubjects.map((t) => t.toLowerCase()).includes(s.toLowerCase()),
-  );
-  if (overlap.length) {
-    score += overlap.length * 10;
-    reasons.push(`Matches subjects: ${overlap.join(", ")}`);
-  }
-
-  if (trainer.location.toLowerCase() === course.location.toLowerCase()) {
-    score += 8;
-    reasons.push("Same location");
-  }
-
-  const availabilityOk =
-    trainer.availabilityRanges?.some((range) => {
-      const start = new Date(range.start).getTime();
-      const end = new Date(range.end).getTime();
-      const cs = new Date(course.startDate).getTime();
-      const ce = new Date(course.endDate).getTime();
-      return start <= cs && end >= ce;
-    }) ?? false;
-  if (availabilityOk) {
-    score += 7;
-    reasons.push("Available for the date range");
-  }
-
-  const activeAssignments = allCourses.filter(
-    (c) => c.assignedTrainerId === trainer.id && new Date(c.endDate) >= new Date(),
-  ).length;
-  score += Math.max(0, 5 - activeAssignments); // fewer active courses = higher score
-  reasons.push(`Active courses: ${activeAssignments}`);
-
-  // Rating
-  if (trainer.rating) {
-    score += trainer.rating;
-    reasons.push(`Rating ${trainer.rating}★`);
-  }
-
-  return { trainer, score, reasons };
-}
 
 export function AssignmentPanel() {
   const { courses, trainers, assignTrainer, selectedCourseId, selectCourse } = useDashboard();
@@ -58,19 +11,66 @@ export function AssignmentPanel() {
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [suggestions, setSuggestions] = useState<TrainerMatchSuggestion[]>([]);
+  const [suggestionsMeta, setSuggestionsMeta] = useState<{
+    source?: string;
+    model?: string;
+    usedCache?: boolean;
+    fallbackReason?: string;
+    error?: string;
+  }>({});
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
 
   const selectedCourse = useMemo(
     () => courses.find((c) => c.id === selectedCourseId) ?? null,
     [courses, selectedCourseId],
   );
 
-  const suggestions = useMemo(() => {
-    if (!selectedCourse) return [];
-    return trainers
-      .map((trainer) => computeScore(selectedCourse, trainer, courses))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 4);
-  }, [courses, trainers, selectedCourse]);
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setSuggestions([]);
+      setSuggestionsMeta({});
+      setSuggestionsError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSuggestionsLoading(true);
+    setSuggestionsError(null);
+
+    fetch(`/api/courses/${selectedCourseId}/match`, { signal: controller.signal })
+      .then(async (res) => {
+        const body: TrainerMatchResponse | { error?: { message?: string } } = await res.json();
+        if (!res.ok) {
+          const message =
+            typeof (body as any)?.error === "string"
+              ? (body as any).error
+              : body && "error" in body && (body as any).error?.message
+                ? (body as any).error.message
+                : "Failed to load suggestions";
+          throw new Error(message);
+        }
+        const payload = body as TrainerMatchResponse;
+        setSuggestions(payload.suggestions ?? []);
+        setSuggestionsMeta({
+          source: payload.source,
+          model: payload.model,
+          usedCache: payload.usedCache,
+          fallbackReason: payload.fallbackReason,
+          error: payload.error,
+        });
+      })
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setSuggestions([]);
+        setSuggestionsMeta({});
+        setSuggestionsError(err instanceof Error ? err.message : "Failed to load suggestions");
+      })
+      .finally(() => setSuggestionsLoading(false));
+
+    return () => controller.abort();
+  }, [selectedCourseId]);
 
   const submit = async (opts?: { allowOverride?: boolean; trainerId?: number }) => {
     if (!selectedCourse) return;
@@ -170,37 +170,60 @@ export function AssignmentPanel() {
         </div>
 
         <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">AI-style suggestions</p>
+          <div className="flex items-center justify-between gap-2 text-xs text-zinc-500">
+            <p className="uppercase tracking-wide">AI suggestions</p>
+            {suggestionsMeta.source ? (
+              <span className="rounded-full bg-white px-2 py-1 font-semibold text-indigo-700">
+                {suggestionsMeta.usedCache ? "cached" : suggestionsMeta.source}
+                {suggestionsMeta.model ? ` • ${suggestionsMeta.model}` : ""}
+              </span>
+            ) : null}
+          </div>
+          {suggestionsMeta.fallbackReason ? (
+            <p className="text-xs text-amber-700">
+              Fallback used: {suggestionsMeta.fallbackReason}
+            </p>
+          ) : null}
+          {suggestionsError ? (
+            <p className="text-xs text-red-700">{suggestionsError}</p>
+          ) : null}
           {selectedCourse ? (
-            suggestions.length ? (
-              suggestions.map((s) => (
-                <div
-                  key={s.trainer.id}
-                  className="rounded-lg border border-zinc-200 bg-white p-3 text-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-zinc-900">{s.trainer.name}</p>
-                      <p className="text-xs text-zinc-500">{s.trainer.location}</p>
-                    </div>
-                    <div className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-                      Score {s.score}
-                    </div>
-                  </div>
-                  <ul className="mt-2 space-y-1 text-xs text-zinc-600">
-                    {s.reasons.map((reason) => (
-                      <li key={reason}>• {reason}</li>
-                    ))}
-                  </ul>
-                  <button
-                    className="mt-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white"
-                    onClick={() => submit({ trainerId: s.trainer.id })}
-                    disabled={assigning}
+            suggestionsLoading ? (
+              <p className="text-sm text-zinc-600">Loading suggestions…</p>
+            ) : suggestions.length ? (
+              suggestions.map((s) =>
+                s.trainer ? (
+                  <div
+                    key={`${s.trainer.id}-${s.score}`}
+                    className="rounded-lg border border-zinc-200 bg-white p-3 text-sm"
                   >
-                    Assign {s.trainer.name}
-                  </button>
-                </div>
-              ))
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-zinc-900">{s.trainer.name}</p>
+                        <p className="text-xs text-zinc-500">{s.trainer.location}</p>
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                          Score {s.score}
+                        </span>
+                        <p className="text-[11px] text-zinc-500">Confidence {s.confidence}%</p>
+                      </div>
+                    </div>
+                    <ul className="mt-2 space-y-1 text-xs text-zinc-600">
+                      {s.reasons.map((reason) => (
+                        <li key={reason}>• {reason}</li>
+                      ))}
+                    </ul>
+                    <button
+                      className="mt-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1 text-xs font-medium text-white"
+                      onClick={() => submit({ trainerId: s.trainer.id })}
+                      disabled={assigning}
+                    >
+                      Assign {s.trainer.name}
+                    </button>
+                  </div>
+                ) : null,
+              )
             ) : (
               <p className="text-sm text-zinc-600">No suggestions available.</p>
             )
