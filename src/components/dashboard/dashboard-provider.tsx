@@ -10,6 +10,7 @@ import {
   TrainerPayload,
 } from "@/lib/types";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { withCsrf } from "@/lib/client/csrf";
 
 type DashboardContextValue = {
   courses: Course[];
@@ -123,11 +124,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const method = courseId ? "PUT" : "POST";
 
       try {
-        const res = await fetch(endpoint, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...parsed.data, allowOverride }),
-        });
+        const res = await fetch(
+          endpoint,
+          await withCsrf({
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...parsed.data, allowOverride }),
+          }),
+        );
 
         const body = await parseJson(res);
 
@@ -158,7 +162,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const deleteCourse = useCallback(
     async (courseId: number) => {
       try {
-        const res = await fetch(`/api/courses/${courseId}`, { method: "DELETE" });
+        const res = await fetch(`/api/courses/${courseId}`, await withCsrf({ method: "DELETE" }));
         const body = await parseJson(res);
         if (!res.ok) {
           return { ok: false, message: body?.error?.message ?? "Failed to delete course" };
@@ -192,11 +196,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
       const method = trainerId ? "PUT" : "POST";
 
       try {
-        const res = await fetch(endpoint, {
-          method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(parsed.data),
-        });
+        const res = await fetch(
+          endpoint,
+          await withCsrf({
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parsed.data),
+          }),
+        );
 
         const body = await parseJson(res);
         if (!res.ok) {
@@ -218,7 +225,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const deleteTrainer = useCallback(
     async (trainerId: number) => {
       try {
-        const res = await fetch(`/api/trainers/${trainerId}`, { method: "DELETE" });
+        const res = await fetch(`/api/trainers/${trainerId}`, await withCsrf({ method: "DELETE" }));
         const body = await parseJson(res);
         if (!res.ok) {
           return { ok: false, message: body?.error?.message ?? "Failed to delete trainer" };
@@ -243,11 +250,14 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const assignTrainer = useCallback(
     async (courseId: number, trainerId: number, opts?: { allowOverride?: boolean }) => {
       try {
-        const res = await fetch(`/api/courses/${courseId}/assign`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ trainerId, allowOverride: opts?.allowOverride }),
-        });
+        const res = await fetch(
+          `/api/courses/${courseId}/assign`,
+          await withCsrf({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ trainerId, allowOverride: opts?.allowOverride }),
+          }),
+        );
         const body = await parseJson(res);
 
         if (res.status === 409 && body?.conflicts) {

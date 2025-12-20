@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import type { NextRequest, NextResponse } from "next/server";
 import { env } from "./env";
 import type { AuthUser } from "./auth";
+import { clearCsrfCookie, setCsrfCookie } from "./security";
 
 const SESSION_COOKIE = "session";
 const secret = new TextEncoder().encode(env.AUTH_SECRET);
@@ -34,10 +35,12 @@ export function setSessionCookie(res: NextResponse, token: string) {
     path: "/",
     maxAge: 60 * 60 * 12,
   });
+  setCsrfCookie(res);
 }
 
 export function clearSessionCookie(res: NextResponse) {
   res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, expires: new Date(0), path: "/" });
+  clearCsrfCookie(res);
 }
 
 

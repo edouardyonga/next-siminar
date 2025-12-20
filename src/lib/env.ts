@@ -11,6 +11,8 @@ const envSchema = z.object({
   MAIL_HOST: z.string().default("localhost"),
   MAIL_PORT: z.string().default("1025"),
   MAIL_FROM: z.string().email().default("seminars@example.com"),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
+  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(120),
 });
 
 export const env = envSchema.parse(process.env);

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { trainerSchema } from "@/lib/validation";
 import { requireAuth } from "@/lib/session";
@@ -12,26 +12,32 @@ async function parseId(params: Params["params"]) {
   return numericId;
 }
 
-export async function GET(_: Request, { params }: Params) {
-  const id = await parseId(params);
-  if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
+export async function GET(req: NextRequest, { params }: Params) {
+  try {
+    await requireAuth(req);
+    const id = await parseId(params);
+    if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
-  const trainer = await prisma.trainer.findUnique({
-    where: { id },
-    include: {
-      courses: {
-        where: { deletedAt: null },
-        orderBy: { startDate: "asc" },
+    const trainer = await prisma.trainer.findUnique({
+      where: { id },
+      include: {
+        courses: {
+          where: { deletedAt: null },
+          orderBy: { startDate: "asc" },
+        },
       },
-    },
-  });
-  if (!trainer) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });
-  return NextResponse.json({ trainer });
+    });
+    if (!trainer) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });
+    return NextResponse.json({ trainer });
+  } catch (err) {
+    const status = err instanceof Error && err.message === "unauthorized" ? 401 : 500;
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status });
+  }
 }
 
-export async function PUT(req: Request, { params }: Params) {
+export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    await requireAuth();
+    await requireAuth(req);
     const id = await parseId(params);
     if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
@@ -65,9 +71,9 @@ export async function PUT(req: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(_: Request, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    await requireAuth();
+    await requireAuth(req);
     const id = await parseId(params);
     if (Number.isNaN(id) || id === null) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AuthUser } from "@/lib/types";
+import { ensureCsrfToken, withCsrf } from "@/lib/client/csrf";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -47,16 +48,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    void ensureCsrfToken().catch(() => {});
     void refresh();
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await fetch(
+        "/api/auth/login",
+        await withCsrf({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }),
+      );
       const body = await parseJson(res);
       if (!res.ok) {
         return { ok: false, message: body?.error?.message ?? "Login failed" };
@@ -70,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", await withCsrf({ method: "POST" }));
     } finally {
       setUser(null);
     }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { courseSchema } from "@/lib/validation";
 import { detectCourseConflicts } from "@/lib/conflicts";
@@ -13,21 +13,27 @@ async function parseId(params: Params["params"]) {
   return numericId;
 }
 
-export async function GET(_: Request, { params }: Params) {
-  const id = await parseId(params);
-  if (!id) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
+export async function GET(req: NextRequest, { params }: Params) {
+  try {
+    await requireAuth(req);
+    const id = await parseId(params);
+    if (!id) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
-  const course = await prisma.course.findFirst({
-    where: { id, deletedAt: null },
-    include: { assignedTrainer: true },
-  });
-  if (!course) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });
-  return NextResponse.json({ course });
+    const course = await prisma.course.findFirst({
+      where: { id, deletedAt: null },
+      include: { assignedTrainer: true },
+    });
+    if (!course) return NextResponse.json({ error: { message: "Not found" } }, { status: 404 });
+    return NextResponse.json({ course });
+  } catch (err) {
+    const status = err instanceof Error && err.message === "unauthorized" ? 401 : 500;
+    return NextResponse.json({ error: { message: "Unauthorized" } }, { status });
+  }
 }
 
-export async function PUT(req: Request, { params }: Params) {
+export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    const user = await requireAuth();
+    const user = await requireAuth(req);
     const id = await parseId(params);
     if (!id) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
@@ -105,9 +111,9 @@ export async function PUT(req: Request, { params }: Params) {
   }
 }
 
-export async function DELETE(_: Request, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    await requireAuth();
+    await requireAuth(req);
     const id = await parseId(params);
     if (!id) return NextResponse.json({ error: { message: "Invalid id" } }, { status: 400 });
 
